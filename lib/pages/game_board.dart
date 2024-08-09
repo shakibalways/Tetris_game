@@ -1,9 +1,10 @@
 import 'dart:async';
-
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:tetris_game/global_widgets/pixel.dart';
 import 'package:tetris_game/pages/piece.dart';
 import 'package:tetris_game/pages/values.dart';
+
 /*
  GAME BOARD
 
@@ -42,17 +43,22 @@ class _GameBoardState extends State<GameBoard> {
     currentPiece.initializePiece();
 
     // frame refresh rate
-    Duration frameRate = const Duration(milliseconds: 600);
+    Duration frameRate = const Duration(milliseconds: 400);
     gameLoop(frameRate);
   }
 
   void gameLoop(Duration frameRate) {
     Timer.periodic(frameRate, (timer) {
       setState(() {
+
+        // check Landing
+        checkLanding();
+
         //move current piece down
         currentPiece.movePiece(Direction.down);
       });
-    });
+    },
+    );
   }
 
   // check for collision in a future position
@@ -81,10 +87,32 @@ class _GameBoardState extends State<GameBoard> {
     return false;
   }
 
-  void checkLanding(){
+  void checkLanding() {
     // if going down is occupied
+    if (checkCollision(Direction.down)) {
+      //mark position as occupied on the game board
+      for (int i = 0; i < currentPiece.position.length; i++) {
+        int row = (currentPiece.position[i] / rowLength).floor();
+        int col = currentPiece.position[i] % rowLength;
+        if (row >= 0 && col >= 0) {
+          gameBoard[row][col] = currentPiece.type;
+        }
+      }
+      //once landed, create the next piece
+      createNewPiece();
+    }
   }
 
+  void createNewPiece() {
+    // create a random object to generate random tetromino types
+    Random rand = Random();
+
+    // create a new piece with random type
+    Tetromino randomType =
+        Tetromino.values[rand.nextInt(Tetromino.values.length)];
+    currentPiece = Piece(type: randomType);
+    currentPiece.initializePiece();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,12 +124,22 @@ class _GameBoardState extends State<GameBoard> {
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: rowLength),
         itemBuilder: (context, index) {
+          // get row and col of each index
+          int row = (index / rowLength).floor();
+          int col = index % rowLength;
+          //current piece
           if (currentPiece.position.contains(index)) {
             return Pixel(
               color: Colors.yellow,
               child: index,
             );
-          } else {
+          }
+          // landed pieces
+          else if (gameBoard[row][col] != null) {
+            return Pixel(color: Colors.pink, child: "");
+          }
+          //blank pixel
+          else {
             return Pixel(
               color: Colors.grey[900],
               child: index,

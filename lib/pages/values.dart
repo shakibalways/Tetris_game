@@ -7,7 +7,6 @@ enum Direction {
   right,
   down,
 }
-
 enum Tetromino {
   L,
   J,
